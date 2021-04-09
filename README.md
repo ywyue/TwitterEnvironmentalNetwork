@@ -1,5 +1,5 @@
 # TwitterEnvironmentalNetwork
-Datasets for course project of Social Data Science - ETH Zurich
+Datasets for course project of [Social Data Science](https://github.com/dgarcia-eu/SocialDataScience) - ETH Zurich
 
 Group members: Tianyuan Wang, Haonan Yang, Yuehan Yang, Yuanwen Yue
 
