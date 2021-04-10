@@ -5,7 +5,7 @@ Group members: Tianyuan Wang, Haonan Yang, Yuehan Yang, Yuanwen Yue
 
 Supervisor: [Prof. David Garcia](http://dgarcia.eu/)
 
-#### Introduction
+### Introduction
 
 The datasets were collected using [rtweet](https://github.com/ropensci/rtweet) and Twitter's offical REST [API](https://developer.twitter.com/en/docs/twitter-api). The datasets contain the following five parts. Each dataset is provided in both csv and Rds formats. You can also use [all.RData]() to load all the data.
 
@@ -55,6 +55,6 @@ The datasets were collected using [rtweet](https://github.com/ropensci/rtweet) a
   - score4: scoring of group member 4
   - mean: average of the 4 group members’ scores, used as the true value
 
-####  Use terms and notice
+###  Use terms and notice
 
 The use of the data should comply with Twitter's [developer agreement and policy](https://developer.twitter.com/en/developer-terms/agreement-and-policy). If you have any questions with the data, please contact us by [yuayue@ethz.ch](mailto: yuayue@ethz.ch).
