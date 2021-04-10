@@ -57,4 +57,4 @@ The datasets were collected using [rtweet](https://github.com/ropensci/rtweet) a
 
 ###  Use terms and notice
 
-The use of the data should comply with Twitter's [developer agreement and policy](https://developer.twitter.com/en/developer-terms/agreement-and-policy). If you have any questions with the data, please contact us by [yuayue@ethz.ch](mailto: yuayue@ethz.ch).
+The use of the data should comply with Twitter's [developer agreement and policy](https://developer.twitter.com/en/developer-terms/agreement-and-policy). If you have any questions with the data, please contact us by yuayue@ethz.ch.
