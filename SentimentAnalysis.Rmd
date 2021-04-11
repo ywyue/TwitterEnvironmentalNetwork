@@ -1,0 +1,341 @@
+---
+title: "Sentiment Analysis"
+Authors: "Tianyuan Wang, Haonan Yang, Yuehan Yang, Yuanwen Yue"
+output: html_document
+---
+
+set environment and import packages
+```{r}
+library(rtweet)
+library(dplyr)
+api_key <- 'Aag06nrU7FWrkPoQA9sZebCtI'
+api_key_secret <- 'UhXvh2M6dwGe7qGPjYlqv7TYoOZhKa3XiT77LRFtVgIcHvtsjp'
+access_token <- '1358067096501047305-lQGl3HdvU05T5FPJybHEQE6DT1yWhE'
+access_token_secret <- 'gSTNRrzZKmjJ2YTeq3ssLIzcoef4ka7VkLJ6sf4Mr7OsW'
+twitter_token <- create_token(
+  app = "SDS_YHN",
+  consumer_key = api_key,
+  consumer_secret = api_key_secret,
+  access_token = access_token,
+  access_secret = access_token_secret,
+  set_renv = TRUE
+)
+```
+
+import and preporcess keywords from collected csv file. Those keywords are criteria of selected tweets from environmental celebrities. 
+```{r}
+keydf <- read.csv('keywords.csv')
+key <- keydf[,1]
+keywords <- paste(key,collapse='|')
+```
+
+select the most recent 1000 tweets which contains keywords for all environmental celebrities. Noticeably, 240 celebrities are divided into two groups due to R limits.
+```{r}
+df1 <- data.frame(name=character(),conversation_id=character())
+for (i in 1:120){
+  res <- get_timeline(env_celebritiesdf$user_id[i],n=1000)
+  res <- res[res$is_retweet!=1,]
+  text <- res$text
+  index <- grep(pattern=keywords, text, ignore.case = T)
+  conversation_id <- res$status_url[index]
+  df_temp <- data.frame(name=rep(env_celebritiesdf$screen_name[i],length(index)),conversation_id=conversation_id)
+  df1 <- union(df1,df_temp)
+}
+
+df2 <- data.frame(name=character(),conversation_id=character())
+for (i in 121:240){
+  res <- get_timeline(env_celebritiesdf$user_id[i],n=1000)
+  res <- res[res$is_retweet!=1,]
+  text <- res$text
+  index <- grep(pattern=keywords,text,ignore.case = T)
+  conversation_id <- res$status_url[index]
+  df_temp <- data.frame(name=rep(env_celebritiesdf$screen_name[i],length(index)),conversation_id=conversation_id)
+  df2 <- union(df2,df_temp)
+}
+
+df <- union(df1,df2)
+write.csv(df,file='environmental_tweets.csv')
+saveRDS(df,'environmental_tweets.Rda')
+```
+
+We use HTTP request to collect replies data. The Twitter API requires bearer token for authentication.
+```{r}
+library(httr)
+
+bearer_token = "AAAAAAAAAAAAAAAAAAAAAJ7GOQEAAAAAx9L4R%2FrjZoqTdCDcXng9xa1U7yc%3DFMHm9GAf8ynRAD7Fbi4Y7yG71oLnsHCgbZWcpL9kivS7gfrwvm"
+headers = c(
+  `Authorization` = sprintf('Bearer %s', bearer_token)
+)
+```
+
+Parse tweets url to get the tweet id.
+```{r}
+selected_tweets <- read.csv('conversation_id4.csv')
+tweet_urls <- selected_tweets[,3]
+url_elements <- strsplit(tweet_urls,'/')
+df_url_elements <- data.frame(matrix(unlist(url_elements), nrow=length(url_elements), byrow=TRUE))
+```
+
+Creat function to collect conversation id for a given tweet id.
+Input:
+  - tweet_id: tweet id obtained in the previous step
+Output:
+  - author_id: the id of the author who posted this tweet
+  - id: tweet id, same with tweet_id
+  - conversation_id: the id of the conversation to which this tweet belongs
+  - public_metrics: includes retweet_count, reply_count, like_count, quote_count
+  - created_at: the time this tweet was created
+  - text: the text content of this tweet
+```{r}
+getConversationId <- function(tweet_id){
+  params = list(
+    `ids` = tweet_id,
+    `tweet.fields` = 'author_id,public_metrics,created_at,conversation_id'
+  )
+  response <- httr::GET(url = 'https://api.twitter.com/2/tweets', httr::add_headers(.headers=headers), query = params)
+  
+  print(paste("x-rate-limit-remaining=",httr::headers(response)$`x-rate-limit-remaining`))
+  print(paste("reset at=",as.POSIXct(as.numeric(httr::headers(response)$`x-rate-limit-reset`), origin="1970-01-01")))
+  
+  fas_body <-
+    content(
+      response,
+      as = 'parsed',
+      type = 'application/json',
+      simplifyDataFrame = TRUE
+    )
+  result <-  data.frame(fas_body$data['author_id'],fas_body$data['id'],fas_body$data['conversation_id'],fas_body$data$public_metrics,fas_body$data['created_at'],fas_body$data['text'])
+  return(result)
+}
+```
+
+
+Call the getConversationId function for all tweets using loop. Each request can process up to 100 tweets, and the time interval between each request is at least 3 seconds due to the rate limit of the Twitter API.
+```{r}
+request_indices <- seq(1,nrow(df_url_elements),by=100)
+conversationIds <- data.frame()
+for(i in 1:length(request_indices)) {
+  if(i==length(request_indices)){
+    tweet_ids <- paste(df_url_elements[request_indices[i]:nrow(df_url_elements),6],collapse = ',')
+  }
+  else {
+    tweet_ids <- paste(df_url_elements[request_indices[i]:(request_indices[i+1]-1),6],collapse = ',')
+  }
+  conversation_id = getConversationId(tweet_ids)
+  print(conversation_id)
+  conversationIds <- rbind(conversationIds, conversation_id)
+  Sys.sleep(3.0001)
+}
+```
+
+
+Before crawling replies, filter tweets based on two conditions:
+1. The reply_count should not be 0, which means that there must be at least one reply to this tweet.
+2. The tweet id should be the same with the conversation id, which means this tweet should be an original tweet, not a reply to another tweet.
+```{r}
+tweets_with_reply <- conversationIds[(conversationIds$id==conversationIds$conversation_id)&conversationIds$reply_count!=0,]
+write.csv(tweets_with_reply, file = 'tweets_with_reply.csv')
+save(tweets_with_reply,file="tweets_with_reply.RData")
+```
+
+
+Create function to collect replies for a given conversation id.
+Input:
+  - conversation_id: conversation id obtained in the previous step
+Output:
+  - author_id: the id of the author who posted this reply
+  - conversation_id: same as input
+  - created_at: the time this reply was created
+  - text: the text content of this reply
+The maximum of max_results is 500, which means we collect up to 500 replies for each conversation.
+```{r}
+getReply <- function(conversation_id){
+  
+  params = list(
+    `query` = paste('conversation_id:',conversation_id),
+    `start_time` = '2010-01-01T01:01:01Z',
+    `max_results` = '500',
+    `tweet.fields` = 'author_id,created_at,conversation_id'
+  )
+  response <- httr::GET(url = 'https://api.twitter.com/2/tweets/search/all', httr::add_headers(.headers=headers), query = params)
+  
+  print(paste("x-rate-limit-remaining=",httr::headers(response)$`x-rate-limit-remaining`))
+  print(paste("reset at=",as.POSIXct(as.numeric(httr::headers(response)$`x-rate-limit-reset`), origin="1970-01-01")))
+  fas_body <-
+    content(
+      response,
+      as = 'parsed',
+      type = 'application/json',
+      simplifyDataFrame = TRUE
+    )
+  result <- data.frame(fas_body$data['author_id'],fas_body$data['conversation_id'],fas_body$data['created_at'],fas_body$data['text'])
+  return(result)
+}
+```
+
+
+Call the getReply function for all conversations using loop. Each request can only process 1 conversation, and the time interval between each request is at least 3 seconds due to the rate limit of the Twitter API. It will take a long time (more than 17h) to run the entire loop, so it is recommended to do it in parts.
+```{r}
+conversationReplies <- data.frame()
+for(i in 1:nrow(tweets_with_reply)) {
+  
+  conversation_id <- tweets_with_reply$conversation_id[i]
+  replies = getReply(conversation_id)
+  print(paste(i,":",conversation_id))
+  conversationReplies <- rbind(conversationReplies, replies)
+  Sys.sleep(3.0001)
+}
+```
+
+
+After collecting all the replies, the data is joint to form a final data frame for subsequent sentiment analysis.
+```{r}
+repliesAll <- data.frame()
+usersName <- env_celebritiesdf[ , c("user_id","screen_name")]
+colnames(tweets_with_reply)[1] = 'user_id'
+usersName <- merge(usersName, tweets_with_reply, by = "user_id")
+usersName <- usersName[, c("user_id","screen_name","conversation_id")]
+repliesAll <- merge(usersName, conversationReplies, by = "conversation_id")
+write.csv(repliesAll, file = 'repliesAll.csv')
+saveRDS(repliesAll,"repliesAll.Rds")
+```
+
+sentiment analysis using VADER package
+```{r}
+repliesAll <- readRDS('repliesAll.Rds')
+library(vader)
+```
+
+for every celebrity, vader_df function is applied to all his/her related replies to calculate the compund sentiment scores; then mean, standard deviation and count number are documented.
+```{r}
+screen_names <- unique(repliesAll$screen_name)
+vader_mean <- rep(99,234)
+vader_sd <- rep(99,234)
+comments_num <- rep(0,234)
+for(i in 1:length(screen_names)){
+  subsample <- subset(repliesAll,screen_name==screen_names[i])
+  res <- vader_df(subsample$text)
+  for(j in 1:nrow(res)){
+    if(is.na(res[j,'compound'])){
+      res[j,'text'] <- gsub('“|”|’|‘||','"',res[j,'text'])
+      res[j,'text'] <- gsub("[^\x01-\x7F]", "",res[j,'text'])
+      res_temp <- vader_df(res[j,'text'])
+      res[j,'compound'] <- res_temp$compound
+    }
+  }
+  vader_mean[i] <- mean(res$compound,na.rm = T)
+  vader_sd[i] <- sd(res$compound,na.rm = T)
+  comments_num[i] <- nrow(res)
+  print(i)
+}
+vader_res <- data.frame(name=screen_names,vader_mean=vader_mean,vader_sd=vader_sd,comments_num=comments_num)
+write.csv(vader_res,'vader_result.csv')
+```
+
+
+comments clean comments' texts: remove non-ASCII code(emojis) and replace non English punctuation
+```{r}
+for(i in 1:nrow(res)){
+  if(is.na(res[i,'compound'])){
+    res[i,'text'] <- gsub('“|”|’|‘||','"',res[i,'text'])
+    res[i,'text'] <- gsub("[^\x01-\x7F]", "",res[i,'text'])
+  }
+  res_temp <- vader_df(res[i,'text'])
+  res[i,'compound'] <- res_temp$compound
+}
+
+```
+
+
+Validation
+First we randomly sample 500 tweets from all replies; we save these tweets for self-sentiment-scoring. We then get vader scores for these samples for later comparison. 
+```{r}
+# sample_text <- sample(repliesAll$text,500) , the result is now stored in sampled_replies.csv file
+sample_text <- read.csv('sampled_replies.csv')
+sample_text <- sample_text[,2]
+pred <- vader_df(sample_text)
+predicted <- pred$compound
+sum(is.na(pred$compound))==0 # output is 0 indicating no NA results
+```
+
+after sentiment scoring by four of our group members, we collect all scores and calculate the mean values for each tweets and regard these mean values as true sentiment analysis scores. Then we validate Sentiment Scores against known results
+```{r}
+scores <- read.csv('manual_scores.csv')
+actual <- scores$mean
+library(sentimentr)
+validate_sentiment(predicted, actual)
+```
+
+before plotting, we summary vader scores, field, community number, kcore and degrees infomation together for all selected celebrities by inner join. Finally, set these parameters as factors,
+```{r}
+load('fields.RData')
+vader_df <- inner_join(vader_res,fieldsdf,by='name')
+vader_df$deg <- as.factor(vader_df$deg)
+vader_df$community <- as.factor(vader_df$community)
+vader_df$kcore <- as.factor(vader_df$kcore)
+vader_df$field <- as.factor(vader_df$field)
+```
+
+Hypothesis test of the second question. First, we use variance test to test homoscedasticity or heteroscedasticity of one pair of samples. We then apply t test according to the previous result to calculate 95% CI of mean.
+```{r}
+var.test(vader_df[vader_df[,'community']==1,'vader_mean'],vader_df[vader_df[,'community']==2,'vader_mean'])[['p.value']]
+var.test(vader_df[vader_df[,'community']==1,'vader_mean'],vader_df[vader_df[,'community']==3,'vader_mean'])[['p.value']]
+var.test(vader_df[vader_df[,'community']==1,'vader_mean'],vader_df[vader_df[,'community']==4,'vader_mean'])[['p.value']]
+var.test(vader_df[vader_df[,'community']==1,'vader_mean'],vader_df[vader_df[,'community']==5,'vader_mean'])[['p.value']]
+var.test(vader_df[vader_df[,'community']==2,'vader_mean'],vader_df[vader_df[,'community']==3,'vader_mean'])[['p.value']]
+var.test(vader_df[vader_df[,'community']==2,'vader_mean'],vader_df[vader_df[,'community']==4,'vader_mean'])[['p.value']]
+var.test(vader_df[vader_df[,'community']==2,'vader_mean'],vader_df[vader_df[,'community']==5,'vader_mean'])[['p.value']]
+var.test(vader_df[vader_df[,'community']==3,'vader_mean'],vader_df[vader_df[,'community']==4,'vader_mean'])[['p.value']]
+var.test(vader_df[vader_df[,'community']==3,'vader_mean'],vader_df[vader_df[,'community']==5,'vader_mean'])[['p.value']]
+var.test(vader_df[vader_df[,'community']==4,'vader_mean'],vader_df[vader_df[,'community']==5,'vader_mean'])[['p.value']]
+
+t.test(vader_df[vader_df[,'community']==1,'vader_mean'],vader_df[vader_df[,'community']==2,'vader_mean'])[['p.value']]
+t.test(vader_df[vader_df[,'community']==1,'vader_mean'],vader_df[vader_df[,'community']==3,'vader_mean'])[['p.value']]
+t.test(vader_df[vader_df[,'community']==1,'vader_mean'],vader_df[vader_df[,'community']==4,'vader_mean'])[['p.value']]
+t.test(vader_df[vader_df[,'community']==1,'vader_mean'],vader_df[vader_df[,'community']==5,'vader_mean'])[['p.value']]
+t.test(vader_df[vader_df[,'community']==2,'vader_mean'],vader_df[vader_df[,'community']==3,'vader_mean'])[['p.value']]
+t.test(vader_df[vader_df[,'community']==2,'vader_mean'],vader_df[vader_df[,'community']==4,'vader_mean'])[['p.value']]
+t.test(vader_df[vader_df[,'community']==2,'vader_mean'],vader_df[vader_df[,'community']==5,'vader_mean'])[['p.value']]
+t.test(vader_df[vader_df[,'community']==3,'vader_mean'],vader_df[vader_df[,'community']==4,'vader_mean'])[['p.value']]
+t.test(vader_df[vader_df[,'community']==3,'vader_mean'],vader_df[vader_df[,'community']==5,'vader_mean'])[['p.value']]
+t.test(vader_df[vader_df[,'community']==4,'vader_mean'],vader_df[vader_df[,'community']==5,'vader_mean'])[['p.value']]
+```
+
+Plotting
+mean vader scores of all selected idols and normal fitting
+```{r}
+library(ggplot2)
+
+# mean vader scores of all idols
+ggplot(vader_res,aes(vader_mean))+geom_histogram(aes(y = ..density..), colour = "black",fill = "white", bins = 14, na.rm = TRUE)+labs(x = "Vader Mean Scores", y = "Density")+stat_function(fun = dnorm, args = list(mean = mean(vader_res$vader_mean, na.rm = TRUE), sd = sd(vader_res$vader_mean, na.rm = TRUE)),colour = "black", size = 1)+theme(text = element_text(size=22),panel.grid.major=element_line(colour=NA),panel.grid.minor=element_line(colour=NA))
+```
+
+boxplot by field
+```{r}
+ggplot(vader_df,aes(x=field, y=vader_mean, fill=field)) + 
+     geom_boxplot() +
+     xlab("Fields of all selected tweeter accounts") +
+     ylab('Vader Scores')+theme(axis.text.x=element_blank(),text = element_text(size=22),panel.grid.major=element_line(colour=NA),panel.grid.minor=element_line(colour=NA))
+```
+boxplot by community
+```{r}
+ggplot(vader_df,aes(x=community, y=vader_mean, fill=community)) + 
+     geom_boxplot(notch = T) +
+     xlab("Communities of all selected tweeter accounts") +
+     ylab('Vader Scores')+theme(text = element_text(size=22),legend.position = 'None',panel.grid.major=element_line(colour=NA),panel.grid.minor=element_line(colour=NA))
+```
+boxplot by kcore
+```{r}
+ggplot(vader_df,aes(x=kcore, y=vader_mean)) + 
+     geom_boxplot() +
+     xlab("Kcores of all selected tweeter accounts") +
+     ylab('Vader Scores')+theme(text = element_text(size=22),legend.position = 'None',panel.grid.major=element_line(colour=NA),panel.grid.minor=element_line(colour=NA))
+```
+
+mosaic chart of field info in different communities
+```{r}
+library(ggmosaic)
+ggplot(data = vader_df) +geom_mosaic(aes(x = product(field, community), fill=field))+theme(axis.text.y=element_blank(),axis.ticks.y = element_blank(),text = element_text(size=22),panel.grid.major=element_line(colour=NA),panel.grid.minor=element_line(colour=NA))
+```
+
+
