@@ -7,9 +7,10 @@ Supervisor: [Prof. David Garcia](http://dgarcia.eu/)
 
 ### Introduction
 
-The datasets were collected using [rtweet](https://github.com/ropensci/rtweet) and Twitter's offical REST [API](https://developer.twitter.com/en/docs/twitter-api). The datasets contain the following five parts. Each dataset is provided in both csv and Rds formats. You can also use [all.RData]() to load all the data.
+The datasets were collected using [rtweet](https://github.com/ropensci/rtweet) and Twitter's offical REST [API](https://developer.twitter.com/en/docs/twitter-api). The datasets contain the following six parts. Each dataset is provided in both csv and Rds formats. You can also use [all.RData]() to load all the data.
 
 - Environmental celebrities's profiles [[users.csv](users.csv)] / [ [users.Rds](users.Rds)]
+- Environmental keywords [[keyword.csv](keyword.csv)] / [ [keyword.Rds](keyword.Rds)]
 - Environmental related tweets [[environmental_tweets.csv](environmental_tweets.csv)] / [ [environmental_tweets.Rds](environmental_tweets.Rds)]
 - Replies in all conversations [[repliesAll.csv](repliesAll.csv)] / [ [repliesAll.Rds](repliesAll.Rds)]
 - Sample replies for validation [[sampled_replies.csv](sampled_replies.csv)] / [ [sampled_replies.Rds](sampled_replies.Rds)]
@@ -21,14 +22,23 @@ The datasets were collected using [rtweet](https://github.com/ropensci/rtweet) a
 - Description: the twitter profiles of 240 selected environmental celebrities. We referred  to three public lists of top environmental influencers selected by [Climate Week NYC](https://www.climateweeknyc.org/climate-groups-top-100-twitter-accounts-2020), [Onalytica](https://onalytica.com/blog/posts/environmental-sustainability-top-100-influencers/) and [Corporate Knights](https://www.corporateknights.com/channels/connected-planet/top-100-eco-influencers-twitter-14295615/). The twitter list can be found [here](https://twitter.com/i/lists/1371127388474462208).
 - Column: user_id, name, screen_name, location, description, url, followers_count	friends_count, listed_count, created_at, favourites_count, etc.
 
-####  2 Environmental related tweets
+####  2 Environmental keywords
+- Source: [[keyword.csv](keyword.csv)] / [ [keyword.Rds](keyword.Rds)]
+- Description: We browsed all the 240 celebrities' recent tweets and selected 65 keywords.
+- Column: 
+  - keyword: keywords related to environmental protection
+  - importance: relevance to environmental protection
+  - notes: some notes
+  - synonyms: synonyms of keywords
+
+####  3 Environmental related tweets
 - Source: [[environmental_tweets.csv](environmental_tweets.csv)] / [ [environmental_tweets.Rds](environmental_tweets.Rds)]
 - Description: To filter tweets regarding environment and climate changes of the chosen celebrities, we browsed all the 240 celebrities’ recent 1000 tweets and pre-selected keywords. Then, we ran grep function in R to filter all queried tweets and obtained 45,298 related tweets.
 - Column: 
   - screen_name:  screen name of user who posted  this Tweet
   - tweet_url: url of this Tweet
 
-####  3 Replies in all conversations
+####  4 Replies in all conversations
 - Source: [[sampled_replies.csv](sampled_replies.csv)] / [ [sampled_replies.Rds](sampled_replies.Rds)]
 - Description: The replies in all conversations. There are 534135 records in total.
 - Column:
@@ -39,13 +49,13 @@ The datasets were collected using [rtweet](https://github.com/ropensci/rtweet) a
   - created_at: the time this reply was created
   - text: the content of this reply
 
-####  4 Sample replies for validation
+####  5 Sample replies for validation
 - Source: [[.csv]()] / [ [.Rds]()]
 - Description: a random sample of 500 replies used for validation
 - Column: 
   - x: the content of this reply
   
-####  5 Manual scores for sample replies
+####  6 Manual scores for sample replies
 - Source: [[manual_scores.csv](manual_scores.csv)] / [ [manual_scores.Rds](manual_scores.Rds)]
 - Description: the sentiment score of the sample of 500 replies labelled by group memers.
 - Column: 
