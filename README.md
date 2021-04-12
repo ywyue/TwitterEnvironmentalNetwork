@@ -8,7 +8,7 @@ Supervisor: [Prof. David Garcia](http://dgarcia.eu/)
 
 ### Introduction
 
-The datasets were collected using [rtweet](https://github.com/ropensci/rtweet) and Twitter's offical REST [API](https://developer.twitter.com/en/docs/twitter-api). The datasets contain the following ten parts. Each dataset is provided in both csv and Rds formats (Due to Github storage limit, we only provide Rds format for repliesAll). You can also use [all.RData](data/all.RData) to load all the data.
+The datasets were collected using [rtweet](https://github.com/ropensci/rtweet) and Twitter's offical REST [API](https://developer.twitter.com/en/docs/twitter-api). The datasets contain the following ten parts. Each dataset is provided in both csv and Rds formats (Due to Github storage's limitation, we only provide Rds format for repliesAll). You can also use [all.RData](data/all.RData) to load all the data.
 
 - Environmental celebrities's profiles [[users.csv](data/users.csv)] / [ [users.Rds](data/users.Rds)]
 - Environmental celebrities's fields label [[celebrity.csv](data/celebrity.csv)] / [ [celebrity.Rds](data/celebrity.Rds)]
