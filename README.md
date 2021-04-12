@@ -8,12 +8,14 @@ Supervisor: [Prof. David Garcia](http://dgarcia.eu/)
 
 ### Introduction
 
-The datasets were collected using [rtweet](https://github.com/ropensci/rtweet) and Twitter's offical REST [API](https://developer.twitter.com/en/docs/twitter-api). The datasets contain the following eight parts. Each dataset is provided in both csv and Rds formats (Due to Github storage limit, we only provide Rds format for repliesAll). You can also use [all.RData](data/all.RData) to load all the data.
+The datasets were collected using [rtweet](https://github.com/ropensci/rtweet) and Twitter's offical REST [API](https://developer.twitter.com/en/docs/twitter-api). The datasets contain the following ten parts. Each dataset is provided in both csv and Rds formats (Due to Github storage limit, we only provide Rds format for repliesAll). You can also use [all.RData](data/all.RData) to load all the data.
 
 - Environmental celebrities's profiles [[users.csv](data/users.csv)] / [ [users.Rds](data/users.Rds)]
 - Environmental celebrities's fields label [[celebrity.csv](data/celebrity.csv)] / [ [celebrity.Rds](data/celebrity.Rds)]
+- Environmental celebrities subset with fields label [[fieldsdf.csv](data/fieldsdf.csv)] / [ [fieldsdf.Rds](data/fieldsdf.Rds)]
 - Environmental keywords [[keyword.csv](data/keyword.csv)] / [ [keyword.Rds](data/keyword.Rds)]
 - Environmental related tweets [[environmental_tweets.csv](data/environmental_tweets.csv)] / [ [environmental_tweets.Rds](data/environmental_tweets.Rds)]
+- Environmental related tweets with reply [[tweets_with_reply.csv](data/tweets_with_reply.csv)] / [ [tweets_with_reply.Rds](data/tweets_with_reply.Rds)]
 - Replies in all conversations [[repliesAll.Rds](data/repliesAll.Rds)]
 - VADER sentiments scores for all celebrities [[vader_result.csv](data/vader_result.csv)] / [ [vader_result.Rds](data/vader_result.Rds)]
 - Sample replies for validation [[sampled_replies.csv](data/sampled_replies.csv)] / [ [sampled_replies.Rds](data/sampled_replies.Rds)]
@@ -31,7 +33,18 @@ The datasets were collected using [rtweet](https://github.com/ropensci/rtweet) a
 - Description: Based on Twitter profile and Wikipedia, celebrities were labeled into scientists, environmentalists, businessmen, politicians, athletes, writers/journalists, actors/singers/hosts, organisations, social activists and NGO officers.
 - Column: user_id, name, screen_name, location, field.
 
-####  3 Environmental keywords
+####  3 Environmental celebrities subset with fields label
+- Source: [[fields.csv](data/fields.csv)] / [ [fields.Rds](data/fields.Rds)]
+- Description: We conduct network analysis on 240 celebrities and screened out 173 celebrities who have at least one connection with other celebrities
+- Column: 
+  - id: user id of this celebrity
+  - name: screen name of thie celebrity
+  - deg: node degree of this celebrity
+  - community: community id which this celebrity belongs to
+  - kcore: kcore of this celebrity
+  - field: field of this celebrity
+
+####  4 Environmental keywords
 - Source: [[keyword.csv](data/keyword.csv)] / [ [keyword.Rds](data/keyword.Rds)]
 - Description: We browsed all the 240 celebrities' recent tweets and selected 35 keywords.
 - Column: 
@@ -40,14 +53,27 @@ The datasets were collected using [rtweet](https://github.com/ropensci/rtweet) a
   - notes: some notes
   - synonyms: synonyms of keywords
 
-####  4 Environmental related tweets
+####  5 Environmental related tweets
 - Source: [[environmental_tweets.csv](data/environmental_tweets.csv)] / [ [environmental_tweets.Rds](data/environmental_tweets.Rds)]
-- Description: To filter tweets regarding environment and climate changes of the chosen celebrities, we browsed all the 240 celebrities’ recent 1000 tweets and pre-selected keywords. Then, we ran grep function in R to filter all queried tweets and obtained 45,298 related tweets.
+- Description: We manually checked all the 240 celebrities' recent tweets regarding environmental issues and selected 35 keywords. Then, we ran grep function in R to filter the last 1,000 tweets of each celebrity and obtained 45,298 related tweets.
 - Column: 
-  - screen_name:  screen name of user who posted  this Tweet
+  - screen_name:  screen name of user who posted this Tweet
   - tweet_url: url of this Tweet
 
-####  5 Replies in all conversations
+####  6 Environmental related tweets with reply
+- Source: [[tweets_with_reply.csv](data/tweets_with_reply.csv)] / [ [tweets_with_reply.Rds](data/tweets_with_reply.Rds)]
+- Description: Before crawling replies, filter tweets based on two conditions:
+  1. The reply_count should not be 0, which means that there must be at least one reply to this tweet.
+  2. The tweet id should be the same with the conversation id, which means this tweet should be the original Tweet that started the conversation.
+- Column: 
+  - author_id: the id of the author who posted this tweet
+  - id: tweet id
+  - conversation_id: the id of the conversation to which this tweet belongs
+  - public_metrics: includes retweet_count, reply_count, like_count, quote_count
+  - created_at: the time this tweet was created
+  - text: the text content of this tweet
+
+####  7 Replies in all conversations
 - Source: [[repliesAll.Rds](data/repliesAll.Rds)]
 - Description: The replies in all conversations. There are 534135 records in total.
 - Column:
@@ -58,7 +84,7 @@ The datasets were collected using [rtweet](https://github.com/ropensci/rtweet) a
   - created_at: the time this reply was created
   - text: the content of this reply
 
-####  6 VADER sentiments scores for all celebrities
+####  8 VADER sentiments scores for all celebrities
 - Source: [[vader_result.csv](data/vader_result.csv)] / [ [vader_result.Rds](data/vader_result.Rds)]
 - Description: VADER sentiments scores for all celebrities.
 - Column:
@@ -67,13 +93,13 @@ The datasets were collected using [rtweet](https://github.com/ropensci/rtweet) a
   - vader_sd: standard deviation of vader scores of all the replies to the celebrity's selected tweets. 
   - comments_num: number of replies to the celebrity's selected tweets. 
 
-####  7 Sample replies for validation
+####  9 Sample replies for validation
 - Source: [[sampled_replies.csv](data/sampled_replies.csv)] / [ [sampled_replies.Rds](data/sampled_replies.Rds)]
 - Description: a random sample of 500 replies used for validation
 - Column: 
   - x: the content of this reply
   
-####  8 Manual scores for sample replies
+####  10 Manual scores for sample replies
 - Source: [[manual_scores.csv](data/manual_scores.csv)] / [ [manual_scores.Rds](data/manual_scores.Rds)]
 - Description: the sentiment score of the sample of 500 replies labelled by group memers.
 - Column: 

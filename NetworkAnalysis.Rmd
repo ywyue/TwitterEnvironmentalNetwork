@@ -58,7 +58,7 @@ graph <- tbl_graph(nodes=vertices, edges = edges, node_key = "id", directed = TR
 graph
 ```
 
-Draw the first graph. We found that there are mant nodes outside without any link.
+Draw the first graph. We found that there are many nodes outside without any link.
 ```{r}
 graph %>% ggraph(layout="fr") +  geom_edge_link0(color="gray", arrow=arrow(type = "closed", length = unit(2,"pt")))  + geom_node_point( shape=19, color="lightblue") + theme_graph()
 ```
@@ -72,7 +72,7 @@ hist(degree,xlim=range(0,max(degree)+20),breaks=120)
 
 ```
 
-Screen out nodes haing at least one link. We will only analyze the connected component.
+Screen out nodes having at least one link. We will only analyze the connected component.
 ```{r}
 env_celebritiesdf %>% filter((user_id %in% friendsdf$user) | (user_id %in% friendsdf$user_id) )->coredf
 
@@ -150,8 +150,8 @@ fieldsdf<-inner_join(comdf,fields,by="name")
 ```
 
 ```{r}
-#save(fieldsdf,file="fields.RData")
-write.csv(fieldsdf,file="fields.csv")
+#save(fieldsdf,file="fieldsdf.Rds")
+write.csv(fieldsdf,file="fieldsdf.csv")
 ```
 
 ```{r}
@@ -204,7 +204,8 @@ ggraph(com_graph,"stress") +
 
 dev.off() 
 ```
-Assign every field an id to make the boxplot looks better.
+
+Assign every field an id to make the plot looks better.
 ```{r}
 fieldsdf$fields_id[fieldsdf$field=="scientist"]=1
 fieldsdf$fields_id[fieldsdf$field=="environmentalist"]=2

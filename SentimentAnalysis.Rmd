@@ -31,25 +31,25 @@ keywords <- paste(key,collapse='|')
 
 select the most recent 1000 tweets which contains keywords for all environmental celebrities. Noticeably, 240 celebrities are divided into two groups due to R limits.
 ```{r}
-df1 <- data.frame(name=character(),conversation_id=character())
+df1 <- data.frame(screen_name=character(),tweet_url=character())
 for (i in 1:120){
   res <- get_timeline(env_celebritiesdf$user_id[i],n=1000)
   res <- res[res$is_retweet!=1,]
   text <- res$text
   index <- grep(pattern=keywords, text, ignore.case = T)
-  conversation_id <- res$status_url[index]
-  df_temp <- data.frame(name=rep(env_celebritiesdf$screen_name[i],length(index)),conversation_id=conversation_id)
+  tweet_url <- res$status_url[index]
+  df_temp <- data.frame(screen_name=rep(env_celebritiesdf$screen_name[i],length(index)),conversation_id=tweet_url)
   df1 <- union(df1,df_temp)
 }
 
-df2 <- data.frame(name=character(),conversation_id=character())
+df2 <- data.frame(screen_name=character(),tweet_url=character())
 for (i in 121:240){
   res <- get_timeline(env_celebritiesdf$user_id[i],n=1000)
   res <- res[res$is_retweet!=1,]
   text <- res$text
   index <- grep(pattern=keywords,text,ignore.case = T)
-  conversation_id <- res$status_url[index]
-  df_temp <- data.frame(name=rep(env_celebritiesdf$screen_name[i],length(index)),conversation_id=conversation_id)
+  tweet_url <- res$status_url[index]
+  df_temp <- data.frame(screen_name=rep(env_celebritiesdf$screen_name[i],length(index)),conversation_id=tweet_url)
   df2 <- union(df2,df_temp)
 }
 
@@ -70,7 +70,7 @@ headers = c(
 
 Parse tweets url to get the tweet id.
 ```{r}
-selected_tweets <- read.csv('conversation_id4.csv')
+selected_tweets <- read.csv('environmental_tweets.csv')
 tweet_urls <- selected_tweets[,3]
 url_elements <- strsplit(tweet_urls,'/')
 df_url_elements <- data.frame(matrix(unlist(url_elements), nrow=length(url_elements), byrow=TRUE))
@@ -131,7 +131,7 @@ for(i in 1:length(request_indices)) {
 
 Before crawling replies, filter tweets based on two conditions:
 1. The reply_count should not be 0, which means that there must be at least one reply to this tweet.
-2. The tweet id should be the same with the conversation id, which means this tweet should be an original tweet, not a reply to another tweet.
+2. The tweet id should be the same with the conversation id, which means this tweet should be the original Tweet that started the conversation.
 ```{r}
 tweets_with_reply <- conversationIds[(conversationIds$id==conversationIds$conversation_id)&conversationIds$reply_count!=0,]
 write.csv(tweets_with_reply, file = 'tweets_with_reply.csv')
@@ -228,8 +228,8 @@ for(i in 1:length(screen_names)){
   comments_num[i] <- nrow(res)
   print(i)
 }
-vader_res <- data.frame(name=screen_names,vader_mean=vader_mean,vader_sd=vader_sd,comments_num=comments_num)
-write.csv(vader_res,'vader_result.csv')
+vader_result <- data.frame(name=screen_names,vader_mean=vader_mean,vader_sd=vader_sd,comments_num=comments_num)
+write.csv(vader_result,'vader_result.csv')
 ```
 
 
@@ -268,8 +268,8 @@ validate_sentiment(predicted, actual)
 
 before plotting, we summary vader scores, field, community number, kcore and degrees infomation together for all selected celebrities by inner join. Finally, set these parameters as factors,
 ```{r}
-load('fields.RData')
-vader_df <- inner_join(vader_res,fieldsdf,by='name')
+load('fieldsdf.RData')
+vader_df <- inner_join(vader_result,fieldsdf,by='name')
 vader_df$deg <- as.factor(vader_df$deg)
 vader_df$community <- as.factor(vader_df$community)
 vader_df$kcore <- as.factor(vader_df$kcore)
@@ -306,8 +306,8 @@ mean vader scores of all selected idols and normal fitting
 ```{r}
 library(ggplot2)
 
-# mean vader scores of all idols
-ggplot(vader_res,aes(vader_mean))+geom_histogram(aes(y = ..density..), colour = "black",fill = "white", bins = 14, na.rm = TRUE)+labs(x = "Vader Mean Scores", y = "Density")+stat_function(fun = dnorm, args = list(mean = mean(vader_res$vader_mean, na.rm = TRUE), sd = sd(vader_res$vader_mean, na.rm = TRUE)),colour = "black", size = 1)+theme(text = element_text(size=22),panel.grid.major=element_line(colour=NA),panel.grid.minor=element_line(colour=NA))
+# mean vader scores of all celebrities
+ggplot(vader_result,aes(vader_mean))+geom_histogram(aes(y = ..density..), colour = "black",fill = "white", bins = 14, na.rm = TRUE)+labs(x = "Vader Mean Scores", y = "Density")+stat_function(fun = dnorm, args = list(mean = mean(vader_result$vader_mean, na.rm = TRUE), sd = sd(vader_result$vader_mean, na.rm = TRUE)),colour = "black", size = 1)+theme(text = element_text(size=22),panel.grid.major=element_line(colour=NA),panel.grid.minor=element_line(colour=NA))
 ```
 
 boxplot by field
